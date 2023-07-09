@@ -1,0 +1,44 @@
+import traceback
+
+from util.database.template.database_template import db
+from util.database.template.database_template import add_one_domain
+from util.database.template.database_template import get_all_domains_info
+from util.database.template.database_template import update_one_domain
+
+'''计算当天日期的月、日'''
+import datetime
+
+current_date = datetime.date.today()
+current_month = current_date.month
+current_day = current_date.day
+current_time = datetime.datetime.now()
+
+table = "A_Long_Tail_Domain_" + str(current_month) + "_" + str(current_day)
+
+
+def add_one_domain_impl(table, domain, type, check, email, name, phone, org, time=datetime.datetime.now()):
+    all = get_all_domains_info(table)
+    domains = [x["domain"] for x in all]
+    '''待加入待domain已经加入过，只能更新'''
+    if domain in domains:
+        try:
+            update_one_domain(table, domain,
+                              {"domain": domain, "time": time, "type": type, "check": check, "email": email,
+                               "name": name, "phone": phone, "org": org})
+        except Exception as e:
+            traceback.print_exc()
+    else:
+        '''正常添加'''
+        try:
+            add_one_domain(table,
+                           {"domain": domain, "time": time, "type": type, "check": check, "email": email, "name": name,
+                            "phone": phone, "org": org})
+        except Exception as e:
+            traceback.print_exc()
+def get_all_domains_info_impl(table, type):
+    try:
+        mongo = db.get_mongo()['fraud_detection'][table]
+        domains = [x for x in mongo.find() if x["type"] == type]
+        return domains
+    except Exception as e:
+        traceback.print_exc()
