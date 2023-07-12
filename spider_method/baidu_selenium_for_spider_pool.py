@@ -113,18 +113,35 @@ if __name__ == "__main__":
                 if "php" not in i:
                     dl.add(i)
             urls.difference_update(dl)
-            print("urls：" + str(urls))
+
             for url in urls:
                 # ds.add(url.split("/")[2])
                 domain = get_sld(url)
                 whois = get_whois(domain)
+                if "privacy" in whois['email'].lower():
+                    whois['email'] = ""
+                if 'privacy' in whois['phone'].lower():
+                    whois["phone"] = ""
+                if 'privacy' in whois["name"].lower():
+                    whois["name"]= ""
+                if 'privacy' in whois["org"].lower():
+                    whois["org"] = ""
                 q.add(url)
-                add_one_domain_impl(table, domain, type="spider", check="True", email=whois['email'],
+                add_one_domain_impl(table, domain, type="spider", check=True, email=whois['email'],
                                     name=whois['name'], phone=whois['phone'], org=whois['org'])
             # if u not in domains and not (inner.endswith(")") or inner.endswith(".css") or inner.endswith(".gif") or inner.endswith(".png") or inner.endswith(".jpg") or inner.endswith(".js") or inner.endswith(".mp3") or inner.endswith(".mp4") or inner.endswith(".avi") or inner.endswith(".wmv") or inner.endswith(".mpg") or inner.endswith(".mpeg") or inner.endswith(".mov") or inner.endswith(".swf”") or inner.endswith(".flv") or inner.endswith(".rm”") or inner.endswith(".ram")):
             #     add_one_word({"url": u})
             if type(urls) == set:
                 q = q.union(urls)
+                q = list(q)
+                mul = set()
+                for i in range(len(q)):
+                    for j in range(i + 1, len(q)):
+                        if get_sld(q[i]) == get_sld(q[j]):
+                            mul.add(q[j])
+                for n in mul:
+                    q.remove(n)
+                q = set(q)
             print("____________________________")
         except:
             traceback.print_exc()

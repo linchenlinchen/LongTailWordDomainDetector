@@ -13,7 +13,7 @@ import codecs
 import csv
 import sys
 import traceback
-
+from util.datetime.is_future import is_time_after_current
 sys.path.append("/config/")
 
 
@@ -38,13 +38,13 @@ def query_whois_detail(domain):
     }
     url = f'http://fdp.qianxin-inc.cn/v3/whois/detail/{domain}'
     response = requests.request("GET", url, params=params, verify=False, headers=headers, proxies=proxies)
-    try:
-        print(response.json()['data'])
-    except Exception:
-        return None
-    return response.json()['data']
 
-def query_whois_by_email(email):
+    if "data" in response.json().keys():
+        return response.json()['data']
+    return None
+
+
+def query_whois_by_email(email, need_active):
     headers = {
         'Connection': 'close',
         'fdp-access': 'c2ae6e5e6c914c54adad68caf6c55b2e',
@@ -58,13 +58,28 @@ def query_whois_by_email(email):
     params = {
         'merge': 0  # 0 合并, 1 返回注册局, 2 返回注册商
     }
-    url = f'http://fdp.qianxin-inc.cn/v3/whois/reverse?column=email&value='+email+'&limit=1000&orderbyDate=checkTime&orderby=desc'
+    url = f'http://fdp.qianxin-inc.cn/v3/whois/reverse?column=email&value='+email+'&orderbyDate=expiresDate&orderby=desc'
     response = requests.request("GET", url, params=params, verify=False, headers=headers, proxies=proxies)
+    result = []
     try:
         print(response.json()['data'])
+        if need_active:
+            for domain in response.json()['data']:
+                url = f'http://fdp.qianxin-inc.cn/v3/whois/detail/' + domain + "?merge=0"
+                rep = requests.request("GET", url, verify=False, headers=headers, proxies=proxies)
+                try:
+                    print(rep.json()["data"])
+
+                    if rep.json()["data"]["registrantEmail"][0] == email and is_time_after_current(rep.json()["data"]["expiresDate"][0]):
+                        result.append(domain)
+                except Exception:
+                    print(domain + " error", end="\t")
+            return result
+        else:
+            return response.json()["data"]
     except Exception:
+        traceback.print_exc()
         return None
-    return response.json()['data']
 
 def query_whois_by_name(name):
     headers = {
