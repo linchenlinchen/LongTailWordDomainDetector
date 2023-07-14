@@ -8,7 +8,7 @@ import re
 from util.database.impl.database_impl import add_one_domain_impl
 from util.database.impl.database_impl import get_all_domains_info_impl
 from util.database.impl.database_impl import db
-from util.whois.whois_get_registrant_info import get_whois, query_whois_detail
+from util.whois.whois_get_registrant_info import get_whois, query_filtered_whois_detail
 from util.database.impl.database_impl import table
 from util.code_info_extractor.get_sld_from_url import get_sld
 
@@ -17,30 +17,21 @@ emails = []
 
 for domain in init:
     try:
-        info = query_whois_detail(domain)
-        if "privacy" in info["registrantEmail"][0].lower():
-            info["registrantEmail"][0] = ""
-        if 'privacy' in info["registrantOrganization"][0].lower():
-            info["registrantOrganization"][0] = ""
-        if 'privacy' in info["registrantName"][0].lower():
-            info["registrantOrganization"][0] = ""
-        if 'privacy' in info["registrantTelephone"][0].lower():
-            info["registrantTelephone"][0] = ""
-        with open("csv/my.csv", 'r') as f:
-            while True:
-                add_one_domain_impl(table, domain, type="provided_by_qianxin", check=True, email=info["registrantEmail"][0],
-                                    name=info["registrantOrganization"][0], phone=info["registrantOrganization"][0], org=info["registrantOrganization"][0],
-                                    is_seed=True)
+        info = query_filtered_whois_detail(domain)
+        # print(info)
+        add_one_domain_impl(table, domain, type="provided_by_qianxin", check=True, email=info["registrantEmail"][0],
+                            name=info["registrantOrganization"][0], phone=info["registrantOrganization"][0], org=info["registrantOrganization"][0],
+                            is_seed=True)
     except Exception:
         traceback.print_exc()
-
-try:
-    with open("csv/my.csv",'r')as f:
-        while True:
-            domains = f.readline().split(",")
-            print(domains)
-            add_one_domain_impl(table, domains[0], type="provided_by_qianxin", check=True, email=domains[1],
-                                name=domains[2], phone=domains[3], org=domains[4],
-                                is_seed=True)
-except Exception:
-    traceback.print_exc()
+#
+# try:
+#     with open("csv/my.csv",'r')as f:
+#         while True:
+#             domains = f.readline().split(",")
+#             print(domains)
+#             add_one_domain_impl(table, domains[0], type="provided_by_qianxin", check=True, email=domains[1],
+#                                 name=domains[2], phone=domains[3], org=domains[4],
+#                                 is_seed=True)
+# except Exception:
+#     traceback.print_exc()

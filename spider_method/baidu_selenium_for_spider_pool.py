@@ -85,8 +85,7 @@ def get_inner_urls(url):
         print(url + " wrong!")
         return set()
 
-
-if __name__ == "__main__":
+def do_spider():
     # 蜘蛛池起点
     # spider_begin = "haoyangsoft.com"
     # table = 'baidu_' + spider_begin + '_result'
@@ -123,7 +122,7 @@ if __name__ == "__main__":
                 if 'privacy' in whois['phone'].lower():
                     whois["phone"] = ""
                 if 'privacy' in whois["name"].lower():
-                    whois["name"]= ""
+                    whois["name"] = ""
                 if 'privacy' in whois["org"].lower():
                     whois["org"] = ""
                 q.add(url)
@@ -147,3 +146,6 @@ if __name__ == "__main__":
             traceback.print_exc()
             print(":error!")
             print("____________________________")
+
+
+# do_spider()

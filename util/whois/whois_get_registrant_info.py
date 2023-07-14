@@ -21,6 +21,32 @@ sys.path.append("/Users/leenchardmen/PycharmProjects/malicicous_url_finder/venv/
 from config.db import DB
 from config.log import Log
 
+def query_filtered_whois_detail(domain):
+    info = query_whois_detail(domain)
+    # print(info)
+    try:
+        if info is None:
+            return None
+        if "registrantEmail" not in info.keys():
+            info["registrantEmail"] = [""]
+        if "registrantOrganization" not in info.keys():
+            info["registrantOrganization"] = [""]
+        if "registrantName" not in info.keys():
+            info["registrantName"] = [""]
+        if "registrantTelephone" not in info.keys():
+            info["registrantTelephone"] = [""]
+
+        if "@" not in info["registrantEmail"][0] or "privacy" in info["registrantEmail"][0].lower():
+            info["registrantEmail"][0] = ""
+        if 'privacy' in info["registrantOrganization"][0].lower():
+            info["registrantOrganization"][0] = ""
+        if 'privacy' in info["registrantName"][0].lower():
+            info["registrantOrganization"][0] = ""
+        if 'privacy' in info["registrantTelephone"][0].lower():
+            info["registrantTelephone"][0] = ""
+    except:
+        traceback.print_exc()
+    return info
 
 def query_whois_detail(domain):
     headers = {
@@ -58,7 +84,7 @@ def query_whois_by_email(email, need_active):
     params = {
         'merge': 0  # 0 合并, 1 返回注册局, 2 返回注册商
     }
-    url = f'http://fdp.qianxin-inc.cn/v3/whois/reverse?column=email&value='+email+'&orderbyDate=expiresDate&orderby=desc'
+    url = f'http://fdp.qianxin-inc.cn/v3/whois/reverse?column=email&value='+email+'&limit=100&orderbyDate=expiresDate&orderby=desc'
     response = requests.request("GET", url, params=params, verify=False, headers=headers, proxies=proxies)
     result = []
     try:

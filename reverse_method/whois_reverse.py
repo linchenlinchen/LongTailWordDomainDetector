@@ -24,9 +24,10 @@ from util.database.impl.database_impl import table
 from util.code_info_extractor.get_sld_from_url import get_sld
 from config.db import DB
 from config.log import Log
-import util.whois.whois_get_registrant_info as who
+from util.whois.whois_get_registrant_info import query_filtered_whois_detail, query_whois_by_email
+from util.network.connection_test import shrink_domain
 
-if __name__ == '__main__':
+def do_reverse():
     sys.setrecursionlimit(30000)
     # 利用注册人信息反查部分
     # tag = "email"
@@ -41,11 +42,26 @@ if __name__ == '__main__':
     # ]
 
     emails = set([x["email"] for x in get_all_domains_info_impl(table, type=None, has_email=True)])
-    print(emails)
-    emails = ['qifengshan2022@163.com']
+    # emails = {"751066209@qq.com"}
+    # print(emails)
     for email in emails:
-        related_domains = who.query_whois_by_email(email, False)
-        print(related_domains)
+        try:
+            related_domains = list(set(query_whois_by_email(email, False)))
+            print(len(related_domains))
+            # for related_domain in related_domains:
+            #     if
+            i = 0
+            print(shrink_domain(related_domains))
+            for related_domain in related_domains:
+                print(str(i), end="\t")
+                i += 1
+                info = query_filtered_whois_detail(related_domain)
+                add_one_domain_impl(table, related_domain, type="whois", check=False, email=info["registrantEmail"][0],
+                                    name=info["registrantOrganization"][0], phone=info["registrantOrganization"][0],
+                                    org=info["registrantOrganization"][0], from_email=email,
+                                    is_seed=True)
+        except:
+            traceback.print_exc()
     # ll = 0
     # for data in datas:
     #     info = {tag: data}
@@ -56,3 +72,6 @@ if __name__ == '__main__':
     #     if data not in ks:
     #         add_one_word(info)
     # print(ll)
+
+
+# do_reverse()
