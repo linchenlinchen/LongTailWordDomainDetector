@@ -43,10 +43,10 @@ def do_reverse():
 
     emails = set([x["email"] for x in get_all_domains_info_impl(table, type=None, has_email=True)])
     # emails = {"751066209@qq.com"}
-    # print(emails)
+    print(emails)
     for email in emails:
         try:
-            related_domains = list(set(query_whois_by_email(email, False)))
+            related_domains = query_whois_by_email(email, False)
             print(len(related_domains))
             # for related_domain in related_domains:
             #     if

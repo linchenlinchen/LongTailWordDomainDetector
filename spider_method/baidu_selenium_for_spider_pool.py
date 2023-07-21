@@ -93,6 +93,7 @@ def do_spider():
     # domains = {x["url"] for x in mongo1.find()}
     # domains = [x["domain"] for  x in get_all_domains_info_impl(table,"spider")]
     q = {"http://www.haoyangsoft.com/waps.php?FHAl0O.html"}
+    q = {"https://yyh.ceo120.net/APaches.php?YK0c6P=jImoqj"}
     # sld集合
     # ds = set()
     # for domain in domains:

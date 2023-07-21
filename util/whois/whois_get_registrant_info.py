@@ -88,7 +88,7 @@ def query_whois_by_email(email, need_active):
     response = requests.request("GET", url, params=params, verify=False, headers=headers, proxies=proxies)
     result = []
     try:
-        print(response.json()['data'])
+        print(list(set(response.json()['data'])))
         if need_active:
             for domain in response.json()['data']:
                 url = f'http://fdp.qianxin-inc.cn/v3/whois/detail/' + domain + "?merge=0"
@@ -102,7 +102,7 @@ def query_whois_by_email(email, need_active):
                     print(domain + " error", end="\t")
             return result
         else:
-            return response.json()["data"]
+            return list(set(response.json()['data']))
     except Exception:
         traceback.print_exc()
         return None

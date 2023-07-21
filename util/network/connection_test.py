@@ -1,3 +1,5 @@
+import datetime
+import os.path
 import traceback
 
 from selenium import webdriver
@@ -64,7 +66,7 @@ def download(driver, keyword):
 def shrink_domain(domains):
     try:
         option = webdriver.ChromeOptions()
-        # option.add_argument('-headless')
+        option.add_argument('-headless')
         # 打开谷歌浏览器
         driver = webdriver.Chrome(options=option)
         # 打开百度搜索主页
@@ -91,7 +93,15 @@ def shrink_domain(domains):
                             # 截取屏幕截图并保存为image.png
                             time.sleep(2)
                             name = domain + "-"+title.replace(",", "，").replace(":", "：").replace("/", "")+di[title].replace(",", "，").replace(":", "：").replace("http", "").replace("/","")
-                            driver.save_screenshot("/Users/leenchardmen/PycharmProjects/LongTailWordDomainDetector/reverse_method/pictures/" + name + '.png')
+                            driver.set_window_size(1920, 1080)
+
+                            current_date = datetime.date.today()
+                            current_month = current_date.month
+                            current_day = current_date.day
+                            path = r"/Users/leenchardmen/PycharmProjects/LongTailWordDomainDetector/pictures" + "_" + str(current_month) + "_" + str(current_day)
+                            if not os.path.exists(path):
+                                os.mkdir(path)
+                            driver.save_screenshot(path + "/" + name + '.png')
 
                         except:
                             print(title + "-" + di[title] + " 404!")
