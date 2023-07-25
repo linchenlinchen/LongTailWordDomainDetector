@@ -156,7 +156,7 @@ def get_ip():
 
 
 
-def get_result(i,domains,ip):
+def get_result(i,domains,ip,ip_pool,vectorizer,loaded_model):
     try:
         lock = multiprocessing.Lock()
         print(domains[i])
@@ -254,7 +254,7 @@ if __name__ == '__main__':
     # u = "https://api.xiaoxiangdaili.com/app/bindIp?appKey=1000985058636877824&appSecret=GtqQAY2h&cnt=&wt=text"
     # requests.get(u)
     for i in tqdm(range(len(domains))):
-        pool.apply_async(get_result,args=(i,domains,ip,))
+        pool.apply_async(get_result,args=(i,domains,ip,ip_pool,vectorizer,loaded_model,))
         
     # 关闭进程池，不再接受新的任务
     pool.close()
