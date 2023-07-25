@@ -1,12 +1,22 @@
 import random
 import time
+import datetime
 import traceback
-
+from tqdm import *
 import requests
 from bs4 import BeautifulSoup
 import sys
-
-def get_baidu_search_result(keyword, ip):
+from sklearn.feature_extraction.text import CountVectorizer
+import pickle
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score
+from sklearn.naive_bayes import MultinomialNB
+import random
+import filelock
+import multiprocessing
+starttime = datetime.datetime.now()
+def get_baidu_search_result(keyword, ip,is_timeout=False):
     try:
         proxies = {
             "http": "" + ip,
@@ -106,14 +116,20 @@ def get_baidu_search_result(keyword, ip):
         for result in results:
             try:
                 title = result.h3.text
-                print(title)
+                # print(title)
                 di[title] = "ing"
             except Exception as e:
                 traceback.print_exc()
     except:
         traceback.print_exc()
-        time.sleep(5)
-        return get_baidu_search_result(keyword, ip)
+        if is_timeout:
+            ip = get_ip()
+            ip_pool.append(ip)
+        else:
+            ip = ip_pool[-2]
+            time.sleep(5)
+        
+        return get_baidu_search_result(keyword, ip,True)
     return di
 
 
@@ -125,92 +141,123 @@ def error_log(word):
 
 def get_ip():
     try:
-        u = "http://http.tiqu.letecs.com/getip3?num=1&type=1&pro=&city=0&yys=0&port=1&time=1&ts=0&ys=0&cs=0&lb=1&sb=0&pb=4&mr=1&regions=&gm=4"
+        # return ""
+        u = "http://webapi.http.zhimacangku.com/getip?num=1&type=1&pro=&city=0&yys=0&port=1&time=1&ts=0&ys=0&cs=0&lb=1&sb=0&pb=4&mr=1&regions="
+        
         # print(u)
+        # u = "https://api.xiaoxiangdaili.com/ip/get?appKey=1000985058636877824&appSecret=GtqQAY2h&cnt=&wt=text"
         ip = requests.get(u)
-        # print(ip.text)
+        print(ip.text)
     except:
         traceback.print_exc()
         return ""
     return ip.text.split("\r\n")[0]
+    return ip.text
 
 
-import datetime
 
+def get_result(i,domains,ip):
+    try:
+        lock = multiprocessing.Lock()
+        print(domains[i])
+        endtime = datetime.datetime.now()
+        if "starttime" not in locals():
+            starttime = endtime
+        print(str(endtime) + "," + str(starttime) + str((endtime - starttime).seconds))
+        if (endtime - starttime).seconds >= 300:
+            ip = get_ip()
+            ip_pool.append(ip)
+            # print(ip)
+            # ip=""
+            starttime = endtime
+        di = get_baidu_search_result("site:"+domains[i], ip)
+        print(di)
+        
+        with open("/Users/leenchardmen/Desktop/random1000titles.csv", 'a') as f:
+            results = list(di.keys())
+            if len(results) < 1:
+                return
+            # f.write(domains[i] + ",")
+            X_new = vectorizer.transform([result.replace(" ","").replace("...","").replace("\n","") for result in results])
+            predictions = loaded_model.predict(X_new)
+            if 1 in predictions :
+                lock.acquire()  # 请求锁
+                f.write(domains[i] + ","+"True,"+results[0]+"\n")
+                lock.release()  # 释放锁
+            else:
+                lock.acquire()  # 请求锁
+                f.write(domains[i] + ","+"False\n")
+                lock.acquire()  # 请求锁
+            f.close()
+    except:
+        traceback.print_exc()
 if __name__ == '__main__':
+    starttime = datetime.datetime.now()
+    # # 创建一个文件锁
+    # lock = filelock.FileLock("/Users/leenchardmen/Desktop/random1000titles.csv")
+
+    # 创建进程池
+    pool = multiprocessing.Pool()
+    ip_pool = []
     is_banned = False
     count = 0
-    starttime = datetime.datetime.now()
+    
     # time.sleep(10)
-    ip = get_ip()
-    domains = ["zhuandayup.cn", "xaxzhep.com", "whslsz.cn", "zainan.com.cn", "yumijy.cn", "leu17.com", "aaak.top",
-           "ynjinlong.cn", "gzkedayiqi.com", "bfdbt.net.cn", "8n3nqq1.buzz", "dafuzhijia.com.cn", "atauscn.cn",
-           "xn--1rwm9b515f.cn", "xn--pbt333iujj.cn", "huadiled.com.cn", "zgbaohong.com", "szgasx.cn", "reg30.cn",
-           "yunhehd.com", "69nq.cn", "hjgkfl.cn", "5mkskww.buzz", "louisonwoodworks.com", "wztqq.cn", "0t7lpgklny.xyz",
-           "lixiangsui.cn", "ai6lc6zblm.xyz", "uz39.com", "fwba3x.cn", "danzhoumutangpingxin.cn", "mbpckbp.cn",
-           "82028.com.cn", "hnmjwlkj.cn", "verov.top", "mmwhh.top", "dczkw.cn", "qgltv.top", "tour-market.cn",
-           "shandongjinke.top", "violintown.cn", "shanxiangyhq.top", "xinshiwuyou.cn", "ylt58.cn", "evogcckc1s.xyz",
-           "zzwjbjfw.cn", "xiaobiesan.top", "xingjitang.com.cn", "jpjboke.top", "xn--ekrq5w1jh.cn", "xinyunde.cn",
-           "xuejiejiaoyu.cn", "fsyun.top", "jcjxjzg.cn", "qchen-qc.com", "hhs0906.top", "szhzjz.com", "yvi6pd.cn",
-           "casray.club", "zugehao.cc", "unsuq.com", "aceedu.net.cn", "vepx.cn", "ufaljip.cn", "youranplus.cn",
-           "xn--p5tw4lnuf.cn", "sqlt.cn", "daishuzhuanqian.cn", "mazhuangxinge.top", "qp84.top", "yangkaihong.cn",
-           "wztcb.cn", "gl3vopc4kv.xyz", "lzlongjiang.cn", "ymlmtaz.cn", "youlianjiaoyi.cn", "rhdur61.top", "aad9.cn",
-           "zgzszq.com", "xn--qrq020a6tn9oi.cn", "cdbzx.top", "ismile.org.cn", "m7cewh.cn", "yaohong88.cn", "ls64.cn",
-           "nhmspkmhg4.xyz", "zgzsmhw.cn", "rimou.top", "jszkfy.cn", "kaibanle.cn", "shangzhongxia.cn",
-           "theskateboardschool.com", "xn--qiv838a.cc", "daybuday1.top", "xkgcs.cn", "you100.top", "ychat01.win",
-           "yingangxinxizixun.cn", "safebag.org.cn", "ketwy4s5sr.xyz", "anhuika.top", "yqhsdcar.cn", "arconobile.com",
-           "miyou1688.com", "hair-welfare.top", "baoqih2.cn", "zsmkswkj.com", "dltwo.top", "greenforesight.cn",
-           "9dfgn.cn", "firepointsoft.com.cn", "szcwjs.com", "vv0l4cojdp.xyz", "hkiwc.top", "zhdwg.top", "voii.top",
-           "afjrnol.cn", "tuojie.top", "tengneng.cn", "jiaoyimao21.buzz", "6ss.top", "szlbjc.com", "baisongshangjie.cn",
-           "incyxwu.cn", "chenyunxin.cn", "cardiffkabel.com.cn", "tuxugn.com", "aivxxt.com", "ledartek.cn", "neif.cn",
-           "tdzv.cn", "ziemnmj.cn", "yuandaotax.com", "huazhiqinfs.cn", "77mz.cn", "fatech.online", "87x6eod.buzz",
-           "kechenyyp.cn", "changhesteel.cn", "qq9kiwsl9o.xyz", "phmxa5j8jf.xyz", "wvpxyhc.cn", "hycapoj.cn",
-           "wdbjz.cn", "huihanzi.com", "sbzyccj.com", "sdpjmedia.cn", "fkxjk.top", "tjwzly.com", "wykl.top", "frpjc.cn",
-           "xiaonuomi.com.cn", "hcyuee.top", "aifenxiang88.top", "xn--iiqpw446m.cn", "becstar.cn", "rto4mimdby.xyz",
-           "qfjfcty1.cn", "imaofg.top", "hfxfrfdt.cn", "xlwsdp.cn", "ymcvolt.cn", "tppuvhh0ix.xyz", "gxpqmgc.cn",
-           "gpufix.top", "buz23qb5.cn", "rifonda.cn", "huaqigj.cn", "jswuye.com.cn", "castlewood.com.cn",
-           "chinacowb.com", "yxshhb.com.cn", "4006wosign.com", "mxyxpx.com", "huanhaoinc.com", "cicycat.com",
-           "sh-jiejin.com.cn", "ovemlqt.cn", "tuhaowang.cn", "sky58.cn", "zzjdi.top", "amberfans.com.cn", "zajy.com.cn",
-           "grand-millennium.cn", "hee0pfl8w4.xyz", "9pmskzn.buzz", "cbgbxyxzx.cn", "acregulator.com.cn", "hdqb267.cn",
-           "kukaestrategia.com", "ppneea.cn", "riurl.cn", "btstbj.com", "maxiaoliang.top", "youxigujia.com",
-           "sinocrownsd.cn", "letnt7idr9.xyz", "qypw.top", "esastur.com", "mashajihaha.top", "youxucoding.top",
-           "firstaidb.top", "web1236.top", "hnweishi.com", "honganonline.cn", "xianhou88.com", "yjyt.net.cn",
-           "sl-zhks.top", "gxebfxi.cn", "xn--w2x90pk6p.cn", "fristblood.top", "haitaopai.cn", "hzthealth.com",
-           "yypyq.cn", "xxweb.top", "vgbhynv.com", "haogugu.vip", "albuquerquecareerfairs.com", "shandongdingyi.cn",
-           "hhinternational.com.cn", "qzbarwx.cn", "88ymxd.top", "jdvsbnt.cn", "henchang.cn", "jtjklm.top",
-           "dlrm.com.cn", "m01.com.cn", "tuokeb2b.net", "pssb.top", "xtjlks.cn", "wztca.cn", "sxonekey.cn",
-           "jink168.top", "xn--h6q36cd4we1j.cn", "cdjjcz.cn", "aliyun6969.cn", "hpmen.com", "choiceautorepairs.com",
-           "fwift.com", "mdoys.cn", "jhkj10.top", "haisheng-dl.com", "zwldmj.top", "qdakdp.cn", "tcfabu.cn",
-           "zjz616.com", "shangquan2021.cn", "hljykxsm.cn", "y7o.cn", "shachuangxingcai.com", "teurl.cn", "cnugveq.cn",
-           "wttewrc.cn", "aliaviation.com", "xingdongi.com", "eonly.cn", "zycsdhr.top", "liverpoolnewstoday.com",
-           "gthjsc.cn", "bonuojiaju.cn", "kepandown.top", "zjhssc.cn", "qtizygf.com.cn", "szmmd.cn", "bievotech.cn",
-           "grapewall.cn", "fjlngan.cn", "frbg.cn", "guanshifuwu.com", "uwwhunx.cn", "hzzunhuang.com", "cknhcgzxmv.cn",
-           "dmhevuv.cn", "gurumenomori.com", "bxnszs.cn", "shenpinpin.com", "bmhq.cn", "10host.cn", "playwater.com.cn",
-           "tytxsj.cn", "ideiadinheiro.com", "blenderkit.cn", "hxwszf.cn", "zion-cn.com", "inxin.com.cn", "mhshwxb.cn",
-           "msmzb.com", "utopiaecologica.com", "fy-zm.cn", "cscsw.cn", "hljyww.cn", "gmocso.cn", "aotjo.com",
-           "stcmoet.cn", "nyin.top", "wztql.cn", "wglab.cn", "tantuwo.com", "123jl.cn", "sbw1688.com", "shenfux.top",
-           "sdhxrs.cn", "54ca.top", "ljzwj.com", "mhhtzl.com", "wlgnjd.com", "baihuowang.com.cn", "avpt.cn",
-           "kdpost.top", "1rbrb9.cn", "fengzhiconsulting.com.cn", "577ka.cn", "jinkangzheng.com", "bztchlkj.cn",
-           "xn--rhty0to3g5o0byep.cn", "okacomco.com", "qsigdyr.cn", "ghcj.com.cn", "ppyt.cn", "thevoidacademy.com",
-           "xmanna.cn", "chenjiagou.top", "skx19980524.top", "moropower.com", "lshcc.com", "qhtongda.cn", "92055.cn",
-           "qingjianb.cn", "ttxgy.top", "glkaiyuan.com.cn", "lcnclqy.cn", "hoyu1832.com", "dengyubo.top", "pay722.com",
-           "fisnake.cc", "007v.cn", "kmbtva.cn", "cuixiaodong.cn", "longyidao.top", "haiganghld.com",
-           "paintcreekproperty.com", "cdtceram.com.cn", "jobonhouse.com", "xn--xhqr21n.net", "wanhezhiyao.cn",
-           "gmail2.cn", "zzsaisite.cn"]
-    with open("no_tubian.csv", 'a') as f:
-        for domain in domains:
-            try:
-                endtime = datetime.datetime.now()
-                print(str(endtime) + "," + str(starttime) + str((endtime - starttime).seconds))
-                if (endtime - starttime).seconds >= 8:
-                    ip = get_ip()
-                    print(ip)
-                    starttime = endtime
-                di = get_baidu_search_result("site:"+domain, ip)
-                print(di)
+    # ip = get_ip()
+    # with open("/Users/leenchardmen/PycharmProjects/LongTailWordDomainDetector/crawler/result_tubian_2000_0601.csv",'r') as f:
+    #     domains = [x.split(",")[0] for x in f.readlines()]
+    with open("/Users/leenchardmen/PycharmProjects/LongTailWordDomainDetector/test/result_tubian2000.csv","r") as f:
+        domains = random.sample([x.split(",")[0] for x in f.readlines()], 1000)
+    # 加载保存的模型
+    with open("model.pickle", "rb") as f:
+        loaded_model = pickle.load(f)
 
-                # f.write(domain + ",\n")
-                for result in di.keys():
-                    f.write(result)
-            except:
-                traceback.print_exc()
+    # 准备数据集
+    with open("/Users/leenchardmen/PycharmProjects/LongTailWordDomainDetector/crawler/match_title.csv",'r') as ps:
+        positive_strings = [x.replace(" ","").replace("...","").replace("\n","") for x in ps.readlines()]
+    with open("/Users/leenchardmen/PycharmProjects/LongTailWordDomainDetector/crawler/midmatch_title.csv",'r') as ms:
+        middle_strings = [x.replace(" ","").replace("...","").replace("\n","") for x in ms.readlines()]
+    with open("/Users/leenchardmen/PycharmProjects/LongTailWordDomainDetector/crawler/dismatch_title.csv",'r') as ns:
+        negative_strings = [x.replace(" ","").replace("...","").replace("\n","") for x in ns.readlines()]
+
+    positive_strings += middle_strings
+    # 二分类
+    random.shuffle(positive_strings)
+    random.shuffle(negative_strings)
+    print(positive_strings)
+    X = positive_strings + negative_strings
+    y = [1] * len(positive_strings) + [0] * len(negative_strings)
+
+    # 准备数据集和标签
+    text_data = X
+    labels = y
+
+    # 特征提取
+    vectorizer = CountVectorizer()
+    X = vectorizer.fit_transform(text_data)
+    y = labels
+
+    # 划分训练集和测试集
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # 训练分类器
+    classifier = MultinomialNB()
+    classifier.fit(X_train, y_train)
+
+    # 评估分类器
+    y_pred = classifier.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    print("Accuracy:", accuracy)
+
+    ip=get_ip()
+    ip_pool.append(ip)
+    # u = "https://api.xiaoxiangdaili.com/app/bindIp?appKey=1000985058636877824&appSecret=GtqQAY2h&cnt=&wt=text"
+    # requests.get(u)
+    for i in tqdm(range(len(domains))):
+        pool.apply_async(get_result,args=(i,domains,ip,))
+        
+    # 关闭进程池，不再接受新的任务
+    pool.close()
+
+    # 等待所有任务完成
+    pool.join()
